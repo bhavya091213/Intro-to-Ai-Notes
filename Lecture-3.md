@@ -106,3 +106,9 @@
    1. Is admissible, upper bound
    2. It is ground truth, therefore it would
    3. The problem is you would need to find the ground truth, which is computationally heavy
+
+## Heuristics
+- Form a semi lattice
+- max of admissible hueristics is admissible
+- bottom of latice is zero heuristic, closest to uniform
+- Finding the most dominant heuristic avoids ground truth computation.
