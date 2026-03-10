@@ -1,0 +1,433 @@
+\documentclass[10pt]{article}
+\usepackage[margin=0.3in]{geometry}
+\usepackage{multicol}
+\usepackage{enumitem}
+\usepackage{amsmath}
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0pt}
+\linespread{0.9}
+\setlist{nosep,leftmargin=*}
+\setlength{\columnsep}{0.15in}
+
+\begin{document}
+\scriptsize
+\begin{center}
+\textbf{CS440 Midterm Cheat Sheet (Search \textbullet{} MDPs \textbullet{} RL L1--L7)}
+\end{center}
+
+\begin{multicols*}{2}
+
+\textbf{0) Notation / Variables (Must Know)}
+
+\textbf{Search vars:}
+\begin{itemize}
+  \item \textbf{s}: state; \textbf{s0}: start; \textbf{Goal(s)}: goal test
+  \item \textbf{a}: action; \textbf{A(s)}: legal actions at s
+  \item \textbf{Result(s,a)=s'}: successor state
+  \item \textbf{c(s,a,s')}: step cost (edge weight)
+  \item \textbf{path}: sequence s0 -> ... -> goal
+  \item \textbf{g(n)}: path cost so far; \textbf{h(n)}: heuristic; \textbf{h*(n)}: true cost-to-go
+  \item \textbf{f(n)}: evaluation (UCS f=g, Greedy f=h, A* f=g+h)
+  \item \textbf{Frontier/OPEN}: generated not expanded; \textbf{Explored/CLOSED}: expanded states
+  \item \textbf{expand(node)}: pop best node, generate successors
+  \item \textbf{b}: branching factor; \textbf{d}: shallowest goal depth; \textbf{m}: max depth
+  \item \textbf{Completeness}: find solution if exists; \textbf{Optimality}: least-cost solution
+\end{itemize}
+
+\textbf{How to use g/h/f:} for each generated node, set
+\textbf{g(child)=g(parent)+cost(edge)}, read \textbf{h(n)} from table, set \textbf{f} by algorithm.
+Expansion order = repeatedly pop smallest priority (except DFS/BFS).
+
+\textbf{MDP vars:}
+\begin{itemize}
+  \item \textbf{S}: states; \textbf{A(s)}: actions
+  \item \textbf{T(s,a,s')=P(s'|s,a)}: transition prob
+  \item \textbf{R(s,a,s')} or \textbf{R(s,a)}: immediate reward
+  \item \textbf{$\gamma$}: discount factor; \textbf{$\pi(a|s)$}: policy
+  \item \textbf{$V_{\pi}(s)$}, \textbf{$Q_{\pi}(s,a)$}: value functions
+  \item \textbf{$V^*(s)$}, \textbf{$Q^*(s,a)$}: optimal values
+  \item \textbf{Bellman backup}: new value = reward + discounted expected future value
+\end{itemize}
+
+\textbf{RL vars:}
+\begin{itemize}
+  \item \textbf{$\alpha$}: learning rate; \textbf{$\epsilon$}: exploration prob
+  \item \textbf{$\delta$}: TD error; \textbf{sample}: (s,a,r,s')
+  \item \textbf{N(s,a,s')}: frequency counts for model-based estimates
+\end{itemize}
+
+\textbf{Generic Graph Search Template (best-first)}
+\textbf{Core skeleton: BFS/UCS/Greedy/A* only differ in priority rule.}
+
+\textbf{Pseudocode: GRAPH-SEARCH}
+\begin{tabular}{@{}l@{}}
+\texttt{function GRAPH\_SEARCH(start, goalTest):}\\
+\texttt{ frontier = priority queue (priority key)}\\
+\texttt{ push Node(state=start,parent=null,g=0)}\\
+\texttt{  using PRIORITY(start)}\\
+\texttt{ explored = empty set}\\
+\texttt{ while frontier not empty:}\\
+\texttt{  node = pop smallest priority}\\
+\texttt{  if goalTest(node.state): return SOLUTION(node)}\\
+\texttt{  if node.state in explored: continue}\\
+\texttt{  add node.state to explored}\\
+\texttt{  for each action a in A(node.state):}\\
+\texttt{   s2 = Result(node.state,a)}\\
+\texttt{   step = c(node.state,a,s2)}\\
+\texttt{   g2 = node.g + step}\\
+\texttt{   child = Node(state=s2,parent=node)}\\
+\texttt{    action=a,g=g2)}\\
+\texttt{   if s2 not in explored:}\\
+\texttt{    push/update child in frontier (cheaper g updates)}\\
+\texttt{ return failure}
+\end{tabular}
+
+\textbf{Priority key by algorithm:}
+\textbf{BFS}: depth (FIFO by depth) \textbullet{}
+\textbf{UCS}: g \textbullet{}
+\textbf{Greedy}: h \textbullet{}
+\textbf{A*}: g+h
+
+\textbf{Stop rule (UCS/A*):} optimal when you stop when \textbf{goal is popped}, not when first generated.
+
+\textbf{2) Search Algorithms (Pseudocode + Properties)}
+
+\textbf{DFS (Depth-First Search)}\newline
+\textbf{Stack (LIFO)}, newest first.\newline
+\textbf{Pros}: low memory. \textbf{Cons}: not optimal; not complete with infinite depth unless limit + cycle checks.
+
+\textbf{Pseudocode: DFS (graph search)}
+\begin{tabular}{@{}l@{}}
+\texttt{function DFS(start):}\\
+\texttt{ stack = [Node(start)]; explored = empty set}\\
+\texttt{ while stack not empty:}\\
+\texttt{  node = pop(stack)}\\
+\texttt{  if Goal(node.state): return solution(node)}\\
+\texttt{  if node.state in explored: continue}\\
+\texttt{  add node.state to explored}\\
+\texttt{  for s2 in successors(node.state) in REVERSED order:}\\
+\texttt{   push(stack, Node(s2,parent=node))}\\
+\texttt{ return failure}
+\end{tabular}
+
+\textbf{BFS (Breadth-First Search)}\newline
+\textbf{Queue (FIFO)}; expands by increasing depth.\newline
+\textbf{Complete}: yes (finite b). \textbf{Optimal}: yes if unit costs.
+
+\textbf{Pseudocode: BFS}
+\begin{tabular}{@{}l@{}}
+\texttt{function BFS(start):}\\
+\texttt{ queue = [Node(start)]}\\
+\texttt{ explored = \{start\}}\\
+\texttt{ while queue not empty:}\\
+\texttt{  node = pop\_front(queue)}\\
+\texttt{  if Goal(node.state): return solution(node)}\\
+\texttt{  for s2 in successors(node.state) in desired order:}\\
+\texttt{   if s2 not in explored:}\\
+\texttt{    explored.add(s2)}\\
+\texttt{    push\_back(queue, Node(s2,parent=node))}\\
+\texttt{ return failure}
+\end{tabular}
+
+\textbf{DLS (Depth-Limited Search)}\newline
+Like DFS with depth limit $\ell$; returns \textbf{cutoff} if limit reached.
+
+\textbf{Pseudocode: DLS (recursive)}
+\begin{tabular}{@{}l@{}}
+\texttt{function DLS(node, limit):}\\
+\texttt{ if Goal(node.state): return solution(node)}\\
+\texttt{ if limit == 0: return cutoff}\\
+\texttt{ cutoffOccurred = false}\\
+\texttt{ for s2 in successors(node.state):}\\
+\texttt{  result = DLS(Node(s2,parent=node), limit-1)}\\
+\texttt{  if result == cutoff: cutoffOccurred = true}\\
+\texttt{  else if result != failure: return result}\\
+\texttt{ if cutoffOccurred: return cutoff else return failure}
+\end{tabular}
+
+\textbf{IDS (Iterative Deepening Search)}\newline
+Runs DLS with limit 0,1,2,... until success.\newline
+\textbf{Complete}: yes. \textbf{Optimal}: yes for unit costs. \textbf{Space}: $O(bd)$.
+
+\textbf{Pseudocode: IDS}
+\begin{tabular}{@{}l@{}}
+\texttt{function IDS(start):}\\
+\texttt{ for limit = 0 to infinity:}\\
+\texttt{  result = DLS(Node(start), limit)}\\
+\texttt{  if result != cutoff: return result}
+\end{tabular}
+
+\textbf{UCS (Uniform Cost Search)}\newline
+Priority queue by smallest g.\newline
+\textbf{Complete}: yes if each step cost $\ge \epsilon > 0$. \textbf{Optimal}: yes for nonnegative costs.
+
+\textbf{Pseudocode: UCS}
+\begin{tabular}{@{}l@{}}
+\texttt{function UCS(start):}\\
+\texttt{ frontier = PQ ordered by g}\\
+\texttt{ push(start with g=0)}\\
+\texttt{ bestG = map state -> best g}\\
+\texttt{ (bestG[start]=0)}\\
+\texttt{ while frontier not empty:}\\
+\texttt{  node = pop\_min\_g(frontier)}\\
+\texttt{  if Goal(node.state): return solution(node)}\\
+\texttt{  if node.g > bestG[node.state]: continue}\\
+\texttt{  for successor s2 with step cost step:}\\
+\texttt{   g2 = node.g + step}\\
+\texttt{   if s2 not in bestG OR g2 < bestG[s2]:}\\
+\texttt{    bestG[s2] = g2}\\
+\texttt{    push(frontier, Node(s2,parent=node,}\\
+\texttt{     g=g2))}\\
+\texttt{ return failure}
+\end{tabular}
+
+\textbf{Greedy Best-First Search}\newline
+Priority queue by smallest h. \textbf{Fast} if h correlates well; \textbf{not optimal}.
+
+\textbf{Pseudocode: Greedy}
+\begin{tabular}{@{}l@{}}
+\texttt{function GREEDY(start):}\\
+\texttt{ frontier = PQ ordered by h; push(start)}\\
+\texttt{ explored = empty set}\\
+\texttt{ while frontier not empty:}\\
+\texttt{  node = pop\_min\_h(frontier)}\\
+\texttt{  if Goal(node.state): return solution(node)}\\
+\texttt{  if node.state in explored: continue}\\
+\texttt{  explored.add(node.state)}\\
+\texttt{  for successor s2:}\\
+\texttt{   if s2 not in explored:}\\
+\texttt{    push(frontier, Node(s2,parent=node))}\\
+\texttt{ return failure}
+\end{tabular}
+
+\textbf{A* Search}\newline
+Priority queue by f=g+h. \textbf{Optimal} if h admissible (tree) / consistent (graph).
+Consistent h => no need to reopen closed nodes.
+
+\textbf{Pseudocode: A*}
+\begin{tabular}{@{}l@{}}
+\texttt{function ASTAR(start):}\\
+\texttt{ frontier = PQ ordered by f=g+h}\\
+\texttt{ push(start with g=0)}\\
+\texttt{ bestG = map state -> best g}\\
+\texttt{ (bestG[start]=0)}\\
+\texttt{ while frontier not empty:}\\
+\texttt{  node = pop\_min\_f(frontier)}\\
+\texttt{  if Goal(node.state): return solution(node)}\\
+\texttt{  if node.g > bestG[node.state]: continue}\\
+\texttt{  for successor s2 with step cost step:}\\
+\texttt{   g2 = node.g + step}\\
+\texttt{   if s2 not in bestG OR g2 < bestG[s2]:}\\
+\texttt{    bestG[s2] = g2}\\
+\texttt{    f2 = g2 + h(s2)}\\
+\texttt{    push(frontier, Node(s2,parent=node,}\\
+\texttt{     g=g2,f=f2))}\\
+\texttt{ return failure}
+\end{tabular}
+
+\textbf{Heuristic properties:}
+\begin{itemize}
+  \item \textbf{Admissible}: $h(n) \le h^*(n)$ for all n
+  \item \textbf{Consistent}: $h(n) \le c(n,n') + h(n')$ for every edge $n \to n'$
+  \item \textbf{Dominance}: $h_2$ dominates $h_1$ if $h_2(n) \ge h_1(n)$ for all n (both admissible)
+  \item \textbf{Combine}: $h = \max(h_1,h_2,...)$ is admissible and stronger
+\end{itemize}
+
+\textbf{3) Worked Search Example (Treasure Hunt)}
+
+\textbf{States (h):} B=7, L=4, M=2, F=6, C=3, T=0.\newline
+\textbf{Edges (costs):} B->L(3), B->F(5), L->M(4), F->C(6), M->T(2), C->T(3).\newline
+\textbf{Goal:} reach T from B. \textbf{Tie-break:} north preferred.
+
+\textbf{A* (g/h/f + expansions):}\newline
+Start B: g=0 h=7 f=7.\newline
+Expand B: L g=3 h=4 f=7; F g=5 h=6 f=11. Pop L.\newline
+Expand L: M g=7 h=2 f=9. Frontier M(9), F(11) -> pop M.\newline
+Expand M: T g=9 h=0 f=9. Frontier T(9), F(11) -> pop T (goal).\newline
+Stop (goal popped). Path B->L->M->T, cost 9.\newline
+Expansions: B, L, M, T.
+
+\textbf{UCS (by g):}\newline
+B; L(g3) vs F(g5) -> pick L. M(g7) vs F(g5) -> pick F. F generates C(g11). Next M(g7) then T(g9).\newline
+Expansions: B, L, F, M, T. Path B->L->M->T (cost 9).
+
+\textbf{BFS (by depth, ignore costs):}\newline
+Depth 0: B. Depth 1: L, F. Depth 2: M (from L), C (from F). Depth 3: T via M then T via C. First T via M (north).\newline
+Path B->L->M->T.
+
+\textbf{DFS (north-first):} B->L->M->T. Expansions: B, L, M, T.
+
+\textbf{Greedy (by h):} B->L->M->T. Expansions: B, L, M, T.
+
+\textbf{4) MDPs: Definitions + How to Solve}
+
+\textbf{MDP} = $(S, A, T, R, \gamma)$.\newline
+\textbf{Markov property:} future depends only on current state (and action).
+
+\textbf{Policy $\pi$:} deterministic $\pi(s)=a$ or stochastic $\pi(a|s)$.\newline
+\textbf{Value meanings:}
+$V_{\pi}(s)$ = expected discounted return starting in s and following $\pi$.\newline
+$Q_{\pi}(s,a)$ = expected return starting in s, take a, then follow $\pi$.
+
+\textbf{Bellman expectation (policy eval):}
+\[V_{\pi}(s)=\sum_a \pi(a|s) \sum_{s'} T(s,a,s') \big[ R(s,a,s') + \gamma V_{\pi}(s') \big]\]
+
+\textbf{Bellman optimality (control):}
+\[V^*(s)=\max_a \sum_{s'} T(s,a,s') \big[ R(s,a,s') + \gamma V^*(s') \big]\]
+
+\textbf{Value Iteration:}
+Initialize $V_0(s)=0$. Repeat
+$V_{k+1}(s)=\max_a \sum_{s'} T(s,a,s') [R + \gamma V_k(s')]$ until change small.\newline
+Extract policy: $\pi^*(s)=\arg\max_a \sum_{s'} T(s,a,s') [R + \gamma V(s')]$.
+
+\textbf{Policy Iteration (one-liner):} repeat policy evaluation ($V_{\pi}$), then improvement
+$\pi_{new}(s)=\arg\max_a \sum_{s'} T(s,a,s') [R + \gamma V_{\pi}(s')]$ until stable.
+
+\textbf{5) Worked MDP Example (Micro-Blackjack)}
+
+\textbf{Problem:} draw cards with replacement equally likely {2,3,4}. If total >= 6 -> terminal utility 0. If Stop while total < 6 -> utility = total. If Draw -> reward 0, transition. $\gamma=1$.\newline
+\textbf{States:} {0,2,3,4,5, Done}.
+
+\textbf{(a) Transitions T and rewards R}\newline
+Stop always ends: $T(s,Stop,Done)=1$, $R(s,Stop,Done)=s$ for s in {0,2,3,4,5}.\newline
+Draw from 0: $T(0,Draw,2)=1/3$, $T(0,Draw,3)=1/3$, $T(0,Draw,4)=1/3$.\newline
+Draw from 2: totals 4,5,Done. $T(2,Draw,4)=1/3$, $T(2,Draw,5)=1/3$, $T(2,Draw,Done)=1/3$.\newline
+Draw from 3: totals 5 or Done. $T(3,Draw,5)=1/3$, $T(3,Draw,Done)=2/3$.\newline
+Draw from 4: $T(4,Draw,Done)=1$.\newline
+Draw from 5: $T(5,Draw,Done)=1$.\newline
+All other transitions prob 0. Rewards for Draw: $R(s,Draw,s')=0$.
+
+\textbf{(b) Value Iteration table (given solution)}\newline
+States: 0 2 3 4 5\newline
+$V_0$: 0 0 0 0 0\newline
+$V_1$: 0 2 3 4 5\newline
+$V_2$: 3 3 3 4 5\newline
+$V_3$: $10/3$ 3 3 4 5\newline
+$V_4$: $10/3$ 3 3 4 5 (converged)
+
+\textbf{How computed (sample):} $V_{k+1}(s)=\max(StopValue, DrawValue)$.\newline
+$StopValue(s)=s$. $DrawValue(s)=\sum_{s'} T(s,Draw,s') \cdot (0+\gamma V_k(s'))$.\newline
+$V_1$: e.g., s=5: max(5,0)=5; similarly s=4,3,2,0.\newline
+$V_2(0)$: $\frac{1}{3}(V_1(2)+V_1(3)+V_1(4))=3$, so $V_2(0)=3$.\newline
+$V_2(2)$: $\frac{1}{3}(V_1(4)+V_1(5)+V_1(Done))=3$, so $V_2(2)=3$.\newline
+$V_3(0)$: $\frac{1}{3}(V_2(2)+V_2(3)+V_2(4))=10/3$.
+
+\textbf{(c) Optimal policy $\pi^*$:}\newline
+$\pi^*(0)=Draw$, $\pi^*(2)=Draw$, $\pi^*(3)=Stop$, $\pi^*(4)=Stop$, $\pi^*(5)=Stop$.\newline
+Reason: at 0 and 2 drawing beats stopping; for 3+ stopping wins.
+
+\textbf{(d) One step policy iteration from given $\pi_i$:}\newline
+Given $\pi_i$: 0:Draw, 2:Stop, 3:Draw, 4:Stop, 5:Draw.\newline
+Computed $V_{\pi_i}$: (0->2), (2->2), (3->0), (4->4), (5->0).\newline
+$\pi_{i+1}$: Draw, Stop, Stop, Stop, Stop (drawing at 3 usually busts).
+
+\textbf{6) RL: Core Updates + How to Use Variables}
+
+\textbf{Goal:} learn values/policy from samples without known T,R.
+
+\textbf{TD error $\delta$:} prediction error. If $\delta>0$ increase value/Q; if $\delta<0$ decrease.
+
+\textbf{TD(0) policy evaluation:}\newline
+$\delta = r + \gamma V(s') - V(s)$; \; $V(s) \leftarrow V(s) + \alpha\,\delta$.
+
+\textbf{Q-learning (off-policy control):}\newline
+$\delta = r + \gamma \max_{a'} Q(s',a') - Q(s,a)$; \; $Q(s,a) \leftarrow Q(s,a) + \alpha\,\delta$.
+
+\textbf{SARSA (on-policy control):}\newline
+$\delta = r + \gamma Q(s',a') - Q(s,a)$ (a' is action taken);\newline
+$Q(s,a) \leftarrow Q(s,a) + \alpha\,\delta$.
+
+\textbf{$\epsilon$-greedy exploration:}\newline
+With prob $\epsilon$: random action. With prob $1-\epsilon$: best-known action.\newline
+Q-learning convergence (tabular) needs each (s,a) visited infinitely often + proper $\alpha$ decay.
+
+\textbf{Model-based (empirical frequency):}\newline
+$\hat{T}(s,a,s') = N(s,a,s') / \sum_x N(s,a,x)$.\newline
+$\hat{R}(s,a,s')$ = average reward on transitions $s$-a->$s'$.\newline
+Then plan using value iteration on $(\hat{T},\hat{R})$.
+
+\textbf{7) Worked RL Example (Q-learning + Model-based)}
+
+Dataset ( $\gamma=1$, $\alpha=1/2$, all Q init 0 ) in order:\newline
+(A, ->, r=2, s'=B)\newline
+(C, <-, r=2, s'=B)\newline
+(B, ->, r=-2, s'=C)\newline
+(A, ->, r=4, s'=B)
+
+\textbf{(a) Q-learning updates}\newline
+General: $Q(s,a) \leftarrow (1-\alpha)Q(s,a) + \alpha [ r + \gamma \max_{a'} Q(s',a') ]$.
+
+Step 1: Q(A,->)\newline
+current 0; target = 2 + max Q(B,*) = 2; new Q = 1.
+
+Step 2: Q(C,<- )\newline
+target = 2 + max Q(B,*) = 2; Q(C,<-)=1.
+
+Step 3: Q(B,->)\newline
+max Q(C,*) = 1; target = -2 + 1 = -1; Q(B,->) = -1/2.
+
+Step 4: Q(A,->) again\newline
+max Q(B,*) = 0 (since Q(B,<-)=0 > -1/2); target = 4; new Q = 5/2.
+
+Final: Q(A,->)=5/2; Q(B,->)=-1/2.\newline
+Policy $\pi_Q(s)=\arg\max_a Q(s,a)$: at A choose ->; at B choose <-.
+
+\textbf{(b) Model-based frequency estimates}\newline
+Counts: A->B observed twice; C<-B once; B->C once.\newline
+$\hat{T}(A,->,B)=1$.\newline
+$\hat{T}(B,->,A)=0$ (never saw B->A).\newline
+$\hat{T}(B,<-,A)$ = N/A (no B,<-, denominator 0).\newline
+$\hat{R}(A,->,B)= (2+4)/2 = 3$.\newline
+$\hat{R}(B,->,A)$ = N/A (never observed).\newline
+$\hat{R}(B,<-,A)$ = N/A (never observed).
+
+\textbf{(c) Concept questions (answers + why)}\newline
+Enough info for optimal policy at convergence?\newline
+Learn full model T,R: YES (plan via value iteration).\newline
+Direct eval V(s) only: NO (no action comparison without model).\newline
+TD eval V(s) only: NO (same reason).\newline
+Q-learning Q(s,a): YES ($\pi^*(s)=\arg\max_a Q(s,a)$).\newline
+Exploration policies guaranteeing Q-learning convergence (in infinite time, ergodic MDP):\newline
+Uniform random fixed policy: YES.\newline
+Greedy policy: NO.\newline
+$\epsilon$-greedy: YES.\newline
+Fixed optimal policy: NO.
+
+\textbf{8) Quick ``How to Solve'' Checklists}
+
+\textbf{Search questions:}\newline
+Order of expansion: write frontier each step, compute priority (DFS stack/BFS queue/UCS g/Greedy h/A* f), apply tie-break (north), record popped nodes.\newline
+Path returned: follow parent pointers from goal to start, reverse.\newline
+Admissible/consistent? Admissible: check $h(n) \le$ true shortest cost-to-goal. Consistent: for every edge $n->n'$ check $h(n) \le c(n,n') + h(n')$.
+
+\textbf{MDP questions:}\newline
+Write T and R: enumerate each state-action's next states and probabilities; reward is immediate reward for that transition.\newline
+Run value iteration: compute action values (Stop/Draw), take max.\newline
+Optimal policy: choose argmax action under final V.
+
+\textbf{RL questions:}\newline
+Run Q-learning: for each sample, target = $r + \gamma \max Q(s',\cdot)$, then update $Q \leftarrow (1-\alpha)Q + \alpha\,target$.\newline
+Model-based frequency: count $N(s,a,s')$, normalize to get $\hat{T}$, average rewards to get $\hat{R}$.\newline
+\textbf{Extra Sample Problem (Search) -- Treasure Hunt (Full Worked)}\newline
+\textbf{Graph:} B,L,M,F,C,T with $h(B)=7,h(L)=4,h(M)=2,h(F)=6,h(C)=3,h(T)=0$.\newline
+\textbf{Edges:} B->L(3), B->F(5), L->M(4), F->C(6), M->T(2), C->T(3).\newline
+\textbf{Tie-break:} north preferred (L before F when tied).
+\textbf{Optimal path helper:} $g(B)=0,g(L)=3,g(M)=7,g(T)=9$; $f(B)=7,f(L)=7,f(M)=9,f(T)=9$.
+\textbf{A* frontier steps (f=g+h):}\newline
+1) Start: {B f7} pop B.\newline
+2) Add L f7, F f11 -> pop L.\newline
+3) Add M f9 -> frontier {M f9, F f11} pop M.\newline
+4) Add T f9 -> frontier {T f9, F f11} pop T (goal).\newline
+\textbf{A* expansions:} B, L, M, T. \textbf{Path:} B->L->M->T (cost 9).
+\textbf{UCS (by g):}\newline
+B; add L g3, F g5 -> pop L; add M g7 -> pop F (g5) add C g11; pop M (g7) add T g9; pop T.\newline
+\textbf{UCS expansions:} B, L, F, M, T. \textbf{Path:} B->L->M->T (cost 9).
+\textbf{Greedy (by h):} B -> L -> M -> T. \textbf{Expansions:} B, L, M, T.
+\textbf{BFS (by depth):} depth0 B; depth1 L,F; depth2 M,C; depth3 T (via M first).\newline
+\textbf{DFS (north-first):} B -> L -> M -> T.
+\textbf{Compact comparison:}\newline
+BFS depth (optimal unit) | DFS stack (not optimal) | UCS g (optimal) | Greedy h (not optimal) | A* g+h (optimal with admissible/consistent h).
+
+\end{multicols*}
+\end{document}
